@@ -1,6 +1,6 @@
 <!--
-Versión: V3-Animaciones
-Descripción: Agrega animaciones suaves al cambiar de pestaña y al mostrar tarjetas. 
+Versión: V4-SinAnimaciones
+Descripción: Elimina animaciones para asegurar que Conciertos y Vuelos se carguen correctamente.
 Fecha: 26/04/2025
 -->
 
@@ -9,20 +9,18 @@ Fecha: 26/04/2025
 <head>
   <meta charset="UTF-8">
   <title>Eventos y Vuelos</title>
-  <script src="js/papaparse.min.js"></script>
+  <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 0;
       background-color: #f0f8ff;
-      transition: background-color 0.5s;
     }
     header {
       display: flex;
       justify-content: center;
       background-color: #007BFF;
       padding: 10px;
-      transition: background-color 0.5s;
     }
     .tab-button {
       background: none;
@@ -57,13 +55,6 @@ Fecha: 26/04/2025
       gap: 20px;
       justify-content: center;
       padding: 20px;
-      opacity: 0;
-      transform: translateY(20px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
-    }
-    .container.show {
-      opacity: 1;
-      transform: translateY(0);
     }
     .card {
       background: white;
@@ -73,15 +64,6 @@ Fecha: 26/04/2025
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      opacity: 0;
-      transform: translateY(30px);
-      animation: fadeInCard 0.8s forwards;
-    }
-    @keyframes fadeInCard {
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
     }
     .card img {
       width: 100%;
@@ -121,16 +103,17 @@ Fecha: 26/04/2025
     let vuelosData = [];
 
     function init() {
+      // Cargar conciertos
       Papa.parse('https://docs.google.com/spreadsheets/d/e/2PACX-1vTbD8h5F2Tc6-fVFRaXJFbaXycdLlJ975uXIcyUom9aNdF_XTWFSiOELQVEmikQu_JUHzPFZJ3786fx/pub?output=csv&gid=0', {
         download: true,
         header: true,
         complete: function(results) {
           conciertosData = results.data;
           renderConciertos(conciertosData);
-          document.getElementById('conciertos').classList.add('show');
         }
       });
 
+      // Cargar vuelos
       Papa.parse('https://docs.google.com/spreadsheets/d/e/2PACX-1vTbD8h5F2Tc6-fVFRaXJFbaXycdLlJ975uXIcyUom9aNdF_XTWFSiOELQVEmikQu_JUHzPFZJ3786fx/pub?output=csv&gid=1309866061', {
         download: true,
         header: true,
@@ -148,11 +131,10 @@ Fecha: 26/04/2025
     function renderConciertos(data) {
       const container = document.getElementById('conciertos');
       container.innerHTML = '';
-      data.forEach((item, index) => {
+      data.forEach(item => {
         if (!item.FECHA) return;
         const card = document.createElement('div');
         card.className = 'card';
-        card.style.animationDelay = `${index * 0.05}s`;
         card.innerHTML = `
           <img src="${item.IMAGEN}" alt="${item.ARTISTA}">
           <div class="card-content">
@@ -171,11 +153,10 @@ Fecha: 26/04/2025
     function renderVuelos(data) {
       const container = document.getElementById('vuelos');
       container.innerHTML = '';
-      data.forEach((item, index) => {
+      data.forEach(item => {
         if (!item['FECHA IDA']) return;
         const card = document.createElement('div');
         card.className = 'card';
-        card.style.animationDelay = `${index * 0.05}s`;
         card.innerHTML = `
           <div class="card-content">
             <h3>${item.ORIGEN} → ${item.DESTINO}</h3>
@@ -201,14 +182,10 @@ Fecha: 26/04/2025
 
       if (tab === 'conciertos') {
         conciertos.classList.remove('hidden');
-        setTimeout(() => conciertos.classList.add('show'), 10);
-        vuelos.classList.remove('show');
         document.body.style.backgroundColor = '#f0f8ff';
         document.querySelector('header').style.backgroundColor = '#007BFF';
       } else {
         vuelos.classList.remove('hidden');
-        setTimeout(() => vuelos.classList.add('show'), 10);
-        conciertos.classList.remove('show');
         document.body.style.backgroundColor = '#e6ffe6';
         document.querySelector('header').style.backgroundColor = '#28a745';
       }
