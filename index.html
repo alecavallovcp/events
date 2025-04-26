@@ -1,7 +1,7 @@
 <!--
-Versión: V4-SinAnimaciones
-Descripción: Elimina animaciones para asegurar que Conciertos y Vuelos se carguen correctamente.
-Fecha: 26/04/2025 21:30
+Versión: V5-Animaciones
+Descripción: Se agregaron animaciones suaves para las tarjetas y el cambio de pestañas.
+Fecha: 26/04/2025 21:30:00
 -->
 
 <!DOCTYPE html>
@@ -21,6 +21,7 @@ Fecha: 26/04/2025 21:30
       justify-content: center;
       background-color: #007BFF;
       padding: 10px;
+      transition: background-color 0.3s;
     }
     .tab-button {
       background: none;
@@ -55,6 +56,13 @@ Fecha: 26/04/2025 21:30
       gap: 20px;
       justify-content: center;
       padding: 20px;
+      opacity: 0;
+      animation: fadeIn 1s forwards;
+    }
+    @keyframes fadeIn {
+      to {
+        opacity: 1;
+      }
     }
     .card {
       background: white;
@@ -64,6 +72,8 @@ Fecha: 26/04/2025 21:30
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      opacity: 0;
+      animation: slideIn 0.5s forwards;
     }
     .card img {
       width: 100%;
@@ -82,6 +92,15 @@ Fecha: 26/04/2025 21:30
     }
     .hidden {
       display: none;
+    }
+    @keyframes slideIn {
+      from {
+        transform: translateY(30px);
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
     }
   </style>
 </head>
