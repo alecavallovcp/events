@@ -2,42 +2,119 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Eventos con Tabletop.js</title>
+  <title>Conciertos y Vuelos</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
-    .card { background: white; border-radius: 10px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-    .card img { width: 100%; border-radius: 8px; }
-    .card h3 { margin: 10px 0 5px; }
-    .card p { margin: 5px 0; color: #555; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f2f2f2;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+      margin-top: 40px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .card img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      background: #ccc;
+    }
+    .card-content {
+      padding: 15px;
+    }
+    .card-content h3 {
+      margin: 0 0 10px;
+      font-size: 20px;
+      color: #222;
+    }
+    .card-content p {
+      margin: 5px 0;
+      color: #555;
+      font-size: 14px;
+    }
+    .nota {
+      margin-top: 10px;
+      font-style: italic;
+      color: #777;
+      font-size: 13px;
+    }
   </style>
 </head>
 <body>
-  <h1>Lista de Eventos</h1>
-  <div class="grid" id="eventos"></div>
 
-  <!-- Cargar Tabletop.js -->
+  <h1>Conciertos</h1>
+  <div class="grid" id="conciertos"></div>
+
+  <h1>Vuelos</h1>
+  <div class="grid" id="vuelos"></div>
+
+  <!-- Tabletop.js -->
   <script src="https://unpkg.com/tabletop@1.6.1/tabletop.js"></script>
   <script>
     Tabletop.init({
-      key: 'https://docs.google.com/spreadsheets/d/1sKMLlUkAxzntXJZoGQMCazpSkbN0FeoPB0XjBBL4Iew/pubhtml',
-      simpleSheet: true,
+      key: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTbD8h5F2Tc6-fVFRaXJFbaXycdLlJ975uXIcyUom9aNdF_XTWFSiOELQVEmikQu_JUHzPFZJ3786fx/pubhtml',
+      simpleSheet: false,
       callback: function(data) {
-        const contenedor = document.getElementById('eventos');
-        data.forEach(ev => {
-          contenedor.innerHTML += `
+        // --- Conciertos ---
+        const conciertos = data['Conciertos'].elements;
+        const contenedorConciertos = document.getElementById('conciertos');
+
+        conciertos.forEach(ev => {
+          contenedorConciertos.innerHTML += `
             <div class="card">
-              <img src="${ev.Imagen}" alt="${ev.Artista}">
-              <h3>${ev.Artista}</h3>
-              <p><strong>Fecha:</strong> ${ev.Fecha}</p>
-              <p><strong>Lugar:</strong> ${ev.Lugar}, ${ev.País}</p>
-              <p><strong>Asistentes:</strong> ${ev.Asistentes}</p>
-              <p><strong>Notas:</strong> ${ev.Notas}</p>
+              <img src="${ev.IMAGEN}" alt="${ev.ARTISTA}">
+              <div class="card-content">
+                <h3>${ev.ARTISTA}</h3>
+                <p><strong>Fecha:</strong> ${ev.FECHA}</p>
+                <p><strong>Lugar:</strong> ${ev.LUGAR}, ${ev.CIUDAD}</p>
+                <p><strong>Costo:</strong> ${ev.COSTO}</p>
+                <p><strong>Asistentes:</strong> ${ev.ASISTENTES}</p>
+                <p><strong>Calificación:</strong> ${ev.CALIFICACION}</p>
+                ${ev.NOTAS ? `<p class="nota">Notas: ${ev.NOTAS}</p>` : ''}
+              </div>
             </div>
           `;
         });
+
+        // --- Vuelos ---
+        const vuelos = data['Vuelos'].elements;
+        const contenedorVuelos = document.getElementById('vuelos');
+
+        vuelos.forEach(vuelo => {
+          contenedorVuelos.innerHTML += `
+            <div class="card">
+              <div class="card-content">
+                <h3>${vuelo.AEROLINEA} - ${vuelo['CODIGO VUELO']}</h3>
+                <p><strong>Fecha Ida:</strong> ${vuelo['FECHA IDA']}</p>
+                <p><strong>Origen:</strong> ${vuelo.ORIGEN}</p>
+                <p><strong>Destino:</strong> ${vuelo.DESTINO}</p>
+                <p><strong>Duración:</strong> ${vuelo.DURACION}</p>
+                <p><strong>Kilómetros:</strong> ${vuelo.KM}</p>
+                <p><strong>Costo:</strong> ${vuelo.COSTO}</p>
+                <p><strong>Participantes:</strong> ${vuelo.PARTICIPANTES}</p>
+                ${vuelo.NOTAS ? `<p class="nota">Notas: ${vuelo.NOTAS}</p>` : ''}
+              </div>
+            </div>
+          `;
+        });
+
       }
     });
   </script>
+
 </body>
 </html>
