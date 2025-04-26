@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Eventos y Vuelos</title>
+  <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+      margin: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
+    .card {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      width: 300px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .card img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+    }
+    .card-content {
+      padding: 15px;
+    }
+    .card-content h3 {
+      margin-top: 0;
+    }
+    .card-content p {
+      margin: 5px 0;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Conciertos</h1>
+  <div id="conciertos" class="container"></div>
+
+  <h1>Vuelos</h1>
+  <div id="vuelos" class="container"></div>
+
+  <script>
+    function init() {
+      // Cargar Conciertos
+      Papa.parse('https://docs.google.com/spreadsheets/d/e/2PACX-1vTbD8h5F2Tc6-fVFRaXJFbaXycdLlJ975uXIcyUom9aNdF_XTWFSiOELQVEmikQu_JUHzPFZJ3786fx/pub?gid=0&single=true&output=csv', {
+        download: true,
+        header: true,
+        complete: function(results) {
+          renderConciertos(results.data);
+        }
+      });
+
+      // Cargar Vuelos
+      Papa.parse('https://docs.google.com/spreadsheets/d/e/2PACX-1vTbD8h5F2Tc6-fVFRaXJFbaXycdLlJ975uXIcyUom9aNdF_XTWFSiOELQVEmikQu_JUHzPFZJ3786fx/pub?gid=905543505&single=true&output=csv', {
+        download: true,
+        header: true,
+        complete: function(results) {
+          renderVuelos(results.data);
+        }
+      });
+    }
+
+    function renderConciertos(data) {
+      const container = document.getElementById('conciertos');
+      data.forEach(item => {
+        if (!item.FECHA) return; // Evitar filas vacías
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <img src="${item.IMAGEN}" alt="${item.ARTISTA}">
+          <div class="card-content">
+            <h3>${item.ARTISTA}</h3>
+            <p><strong>Fecha:</strong> ${item.FECHA}</p>
+            <p><strong>Lugar:</strong> ${item.LUGAR} (${item.CIUDAD})</p>
+            <p><strong>Asistentes:</strong> ${item.ASISTENTES}</p>
+            <p><strong>Calificación:</strong> ${item.CALIFICACION}</p>
+            <p><strong>Notas:</strong> ${item.NOTAS}</p>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderVuelos(data) {
+      const container = document.getElementById('vuelos');
+      data.forEach(item => {
+        if (!item['FECHA IDA']) return; // Evitar filas vacías
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="card-content">
+            <h3>${item.ORIGEN} → ${item.DESTINO}</h3>
+            <p><strong>Fecha Ida:</strong> ${item['FECHA IDA']}</p>
+            <p><strong>Aerolínea:</strong> ${item.AEROLINEA}</p>
+            <p><strong>Duración:</strong> ${item.DURACION}</p>
+            <p><strong>KM:</strong> ${item.KM}</p>
+            <p><strong>Coste:</strong> ${item.COSTO}</p>
+            <p><strong>Participantes:</strong> ${item.PARTICIPANTES}</p>
+            <p><strong>Notas:</strong> ${item.NOTAS}</p>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

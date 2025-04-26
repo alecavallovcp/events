@@ -7,17 +7,49 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f7f7f7;
+      margin: 0;
+      background-color: #f0f8ff;
+      transition: background-color 0.5s;
+    }
+    header {
+      display: flex;
+      justify-content: center;
+      background-color: #007BFF;
+      padding: 10px;
+    }
+    .tab-button {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 18px;
+      margin: 0 20px;
+      cursor: pointer;
+      padding: 10px;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+    }
+    .tab-button.active {
+      border-bottom: 3px solid white;
+      font-weight: bold;
+    }
+    .search-bar {
+      display: flex;
+      justify-content: center;
       margin: 20px;
     }
-    h1 {
-      text-align: center;
+    .search-bar input {
+      width: 300px;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 16px;
     }
     .container {
       display: flex;
       flex-wrap: wrap;
       gap: 20px;
       justify-content: center;
+      padding: 20px;
     }
     .card {
       background: white;
@@ -43,40 +75,59 @@
       margin: 5px 0;
       font-size: 14px;
     }
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
-  <h1>Conciertos</h1>
-  <div id="conciertos" class="container"></div>
+  <header>
+    <button class="tab-button active" id="btn-conciertos">Conciertos</button>
+    <button class="tab-button" id="btn-vuelos">Vuelos</button>
+  </header>
 
-  <h1>Vuelos</h1>
-  <div id="vuelos" class="container"></div>
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Buscar...">
+  </div>
+
+  <div id="conciertos" class="container"></div>
+  <div id="vuelos" class="container hidden"></div>
 
   <script>
+    let conciertosData = [];
+    let vuelosData = [];
+
     function init() {
       // Cargar Conciertos
-      Papa.parse('https://docs.google.com/spreadsheets/d/e/2PACX-1vTbD8h5F2Tc6-fVFRaXJFbaXycdLlJ975uXIcyUom9aNdF_XTWFSiOELQVEmikQu_JUHzPFZJ3786fx/pub?gid=0&single=true&output=csv', {
+      Papa.parse('https://docs.google.com/spreadsheets/d/e/2PACX-1vTbD8h5F2Tc6-fVFRaXJFbaXycdLlJ975uXIcyUom9aNdF_XTWFSiOELQVEmikQu_JUHzPFZJ3786fx/pub?output=csv&gid=0', {
         download: true,
         header: true,
         complete: function(results) {
-          renderConciertos(results.data);
+          conciertosData = results.data;
+          renderConciertos(conciertosData);
         }
       });
 
       // Cargar Vuelos
-      Papa.parse('https://docs.google.com/spreadsheets/d/e/2PACX-1vTbD8h5F2Tc6-fVFRaXJFbaXycdLlJ975uXIcyUom9aNdF_XTWFSiOELQVEmikQu_JUHzPFZJ3786fx/pub?gid=905543505&single=true&output=csv', {
+      Papa.parse('https://docs.google.com/spreadsheets/d/e/2PACX-1vTbD8h5F2Tc6-fVFRaXJFbaXycdLlJ975uXIcyUom9aNdF_XTWFSiOELQVEmikQu_JUHzPFZJ3786fx/pub?output=csv&gid=1309866061', {
         download: true,
         header: true,
         complete: function(results) {
-          renderVuelos(results.data);
+          vuelosData = results.data;
+          renderVuelos(vuelosData);
         }
       });
+
+      document.getElementById('btn-conciertos').addEventListener('click', () => showTab('conciertos'));
+      document.getElementById('btn-vuelos').addEventListener('click', () => showTab('vuelos'));
+      document.getElementById('searchInput').addEventListener('input', handleSearch);
     }
 
     function renderConciertos(data) {
       const container = document.getElementById('conciertos');
+      container.innerHTML = '';
       data.forEach(item => {
-        if (!item.FECHA) return; // Evitar filas vacías
+        if (!item.FECHA) return;
         const card = document.createElement('div');
         card.className = 'card';
         card.innerHTML = `
@@ -96,8 +147,9 @@
 
     function renderVuelos(data) {
       const container = document.getElementById('vuelos');
+      container.innerHTML = '';
       data.forEach(item => {
-        if (!item['FECHA IDA']) return; // Evitar filas vacías
+        if (!item['FECHA IDA']) return;
         const card = document.createElement('div');
         card.className = 'card';
         card.innerHTML = `
@@ -114,6 +166,40 @@
         `;
         container.appendChild(card);
       });
+    }
+
+    function showTab(tab) {
+      document.getElementById('conciertos').classList.toggle('hidden', tab !== 'conciertos');
+      document.getElementById('vuelos').classList.toggle('hidden', tab !== 'vuelos');
+
+      document.getElementById('btn-conciertos').classList.toggle('active', tab === 'conciertos');
+      document.getElementById('btn-vuelos').classList.toggle('active', tab === 'vuelos');
+
+      document.body.style.backgroundColor = tab === 'conciertos' ? '#f0f8ff' : '#e6ffe6';
+      document.querySelector('header').style.backgroundColor = tab === 'conciertos' ? '#007BFF' : '#28a745';
+
+      handleSearch(); // Actualizar búsqueda en la nueva pestaña
+    }
+
+    function handleSearch() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const activeTab = document.getElementById('conciertos').classList.contains('hidden') ? 'vuelos' : 'conciertos';
+
+      if (activeTab === 'conciertos') {
+        const filtered = conciertosData.filter(item =>
+          (item.ARTISTA || '').toLowerCase().includes(searchTerm) ||
+          (item.LUGAR || '').toLowerCase().includes(searchTerm) ||
+          (item.CIUDAD || '').toLowerCase().includes(searchTerm)
+        );
+        renderConciertos(filtered);
+      } else {
+        const filtered = vuelosData.filter(item =>
+          (item.ORIGEN || '').toLowerCase().includes(searchTerm) ||
+          (item.DESTINO || '').toLowerCase().includes(searchTerm) ||
+          (item.AEROLINEA || '').toLowerCase().includes(searchTerm)
+        );
+        renderVuelos(filtered);
+      }
     }
 
     window.addEventListener('DOMContentLoaded', init);
