@@ -121,12 +121,17 @@ Fecha: 28/11/2025 15:18:00
       opacity: 0;
       animation: slideIn 0.5s forwards;
       position: relative;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .card--past {
       background: #f3f3f3;
     }
     .card--future {
       background: #8bb2ff;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
     }
     .card-content {
       padding: 15px;
@@ -220,24 +225,7 @@ Fecha: 28/11/2025 15:18:00
   </header>
 
   <div class="metrics-wrapper">
-    <div class="metrics-container">
-      <div class="metric-card">
-        <span class="metric-label">Eventos pasados</span>
-        <span id="metricPast" class="metric-value">0</span>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">Eventos futuros</span>
-        <span id="metricFuture" class="metric-value metric-value--highlight">0</span>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">Costo total (1 persona)</span>
-        <span id="metricCost" class="metric-value">$ 0</span>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">Promedio eventos x año</span>
-        <span id="metricAverage" class="metric-value">0</span>
-      </div>
-    </div>
+    <div id="metricsContainer" class="metrics-container"></div>
   </div>
 
   <div class="search-bar">
@@ -250,52 +238,23 @@ Fecha: 28/11/2025 15:18:00
   <script>
     let conciertosData = [];
     let vuelosData = [];
+    let currentTab = 'conciertos';
 
-    function updateMetrics() {
-      const pastEl = document.getElementById('metricPast');
-      const futureEl = document.getElementById('metricFuture');
-      const costEl = document.getElementById('metricCost');
-      const averageEl = document.getElementById('metricAverage');
+    function renderMetrics(tab, data) {
+      if (tab !== currentTab) return;
+      const container = document.getElementById('metricsContainer');
+      if (!container) return;
 
-      const combined = [...conciertosData, ...vuelosData];
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const metrics = tab === 'conciertos'
+        ? computeConciertosMetrics(data)
+        : computeVuelosMetrics(data);
 
-      let pastCount = 0;
-      let futureCount = 0;
-      let totalCost = 0;
-      const yearCount = new Map();
-
-      combined.forEach(item => {
-        const dateStr = item.FECHA || item['FECHA IDA'];
-        const parsedDate = parseDateString(dateStr);
-        if (!parsedDate) return;
-
-        const normalizedDate = new Date(parsedDate.getTime());
-        normalizedDate.setHours(0, 0, 0, 0);
-
-        if (normalizedDate < today) {
-          pastCount += 1;
-        } else {
-          futureCount += 1;
-        }
-
-        const year = normalizedDate.getFullYear();
-        yearCount.set(year, (yearCount.get(year) || 0) + 1);
-
-        const costValue = parseCostToNumber(item.COSTO);
-        if (costValue !== null) {
-          totalCost += costValue;
-        }
-      });
-
-      const eventsWithDate = pastCount + futureCount;
-      const averagePerYear = yearCount.size ? (eventsWithDate / yearCount.size) : 0;
-
-      pastEl.textContent = pastCount;
-      futureEl.textContent = futureCount;
-      costEl.textContent = formatCost(totalCost) ?? '$ 0';
-      averageEl.textContent = averagePerYear.toFixed(1);
+      container.innerHTML = metrics.map(metric => `
+        <div class="metric-card">
+          <span class="metric-label">${metric.label}</span>
+          <span class="metric-value${metric.highlight ? ' metric-value--highlight' : ''}">${metric.value}</span>
+        </div>
+      `).join('');
     }
 
     function parseDateString(dateStr) {
@@ -363,6 +322,79 @@ Fecha: 28/11/2025 15:18:00
       return 'future';
     }
 
+    function computeConciertosMetrics(data) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      let past = 0;
+      let future = 0;
+      let totalCost = 0;
+      const yearCount = new Map();
+
+      data.forEach(item => {
+        const date = parseDateString(item.FECHA);
+        if (!date) return;
+
+        const normalizedDate = new Date(date.getTime());
+        normalizedDate.setHours(0, 0, 0, 0);
+
+        if (normalizedDate < today) {
+          past += 1;
+        } else {
+          future += 1;
+        }
+
+        const year = normalizedDate.getFullYear();
+        yearCount.set(year, (yearCount.get(year) || 0) + 1);
+
+        const cost = parseCostToNumber(item.COSTO);
+        if (cost !== null) {
+          totalCost += cost;
+        }
+      });
+
+      const eventsWithDate = past + future;
+      const average = yearCount.size ? (eventsWithDate / yearCount.size) : 0;
+
+      return [
+        { label: 'Eventos pasados', value: past },
+        { label: 'Eventos futuros', value: future, highlight: true },
+        { label: 'Costo total (1 persona)', value: formatCost(totalCost) ?? '$ 0' },
+        { label: 'Promedio eventos x año', value: average.toFixed(1) }
+      ];
+    }
+
+    function computeVuelosMetrics(data) {
+      let count = 0;
+      let totalCost = 0;
+      const yearCount = new Map();
+
+      data.forEach(item => {
+        const date = parseDateString(item['FECHA IDA']);
+        if (!date) return;
+
+        const normalizedDate = new Date(date.getTime());
+        normalizedDate.setHours(0, 0, 0, 0);
+
+        count += 1;
+        const year = normalizedDate.getFullYear();
+        yearCount.set(year, (yearCount.get(year) || 0) + 1);
+
+        const cost = parseCostToNumber(item.COSTO);
+        if (cost !== null) {
+          totalCost += cost;
+        }
+      });
+
+      const average = yearCount.size ? (count / yearCount.size) : 0;
+
+      return [
+        { label: 'Cantidad de vuelos', value: count, highlight: true },
+        { label: 'Costo total', value: formatCost(totalCost) ?? '$ 0' },
+        { label: 'Cantidad promedio x año', value: average.toFixed(1) }
+      ];
+    }
+
     function parseCostToNumber(value) {
       if (value === undefined || value === null) return null;
 
@@ -422,7 +454,7 @@ Fecha: 28/11/2025 15:18:00
         complete: function(results) {
           conciertosData = results.data;
           renderConciertos(conciertosData);
-          updateMetrics();
+          renderMetrics('conciertos', conciertosData);
         }
       });
 
@@ -433,7 +465,9 @@ Fecha: 28/11/2025 15:18:00
         complete: function(results) {
           vuelosData = results.data;
           renderVuelos(vuelosData);
-          updateMetrics();
+          if (currentTab === 'vuelos') {
+            renderMetrics('vuelos', vuelosData);
+          }
         }
       });
 
@@ -472,7 +506,9 @@ Fecha: 28/11/2025 15:18:00
         `;
         container.appendChild(card);
       });
-      updateMetrics();
+      if (currentTab === 'conciertos') {
+        renderMetrics('conciertos', data);
+      }
     }
 
     function renderVuelos(data) {
@@ -505,6 +541,9 @@ Fecha: 28/11/2025 15:18:00
         `;
         container.appendChild(card);
       });
+      if (currentTab === 'vuelos') {
+        renderMetrics('vuelos', data);
+      }
     }
 
     function showTab(tab) {
@@ -526,6 +565,13 @@ Fecha: 28/11/2025 15:18:00
 
       document.getElementById('btn-conciertos').classList.toggle('active', tab === 'conciertos');
       document.getElementById('btn-vuelos').classList.toggle('active', tab === 'vuelos');
+
+      currentTab = tab;
+      if (tab === 'conciertos') {
+        renderMetrics('conciertos', conciertosData);
+      } else {
+        renderMetrics('vuelos', vuelosData);
+      }
 
       handleSearch(); 
     }
