@@ -74,6 +74,7 @@ Fecha: 26/04/2025 21:30:00
       flex-direction: column;
       opacity: 0;
       animation: slideIn 0.5s forwards;
+      position: relative;
     }
     .card--past {
       background: #f3f3f3;
@@ -81,13 +82,69 @@ Fecha: 26/04/2025 21:30:00
     .card--future {
       background: #e9fbe9;
     }
+    .card-content {
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: 100%;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .card-header h3 {
+      margin: 0;
+      font-size: 1.2rem;
+      flex: 1;
+    }
+    .card-badge {
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    .card-badge--past {
+      background-color: #cfcfcf;
+      color: #393939;
+    }
+    .card-badge--future {
+      background-color: #c0f0c0;
+      color: #1f5b1f;
+    }
+    .card-body p {
+      margin: 4px 0;
+      font-size: 14px;
+    }
+    .card-footer {
+      margin-top: auto;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .card-cost {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      background-color: #29a36a;
+      color: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    }
+    .card--past .card-cost {
+      background-color: #9d9d9d;
+      color: #272727;
+    }
     .card img {
       width: 100%;
       height: 200px;
       object-fit: cover;
-    }
-    .card-content {
-      padding: 15px;
     }
     .card-content h3 {
       margin-top: 0;
@@ -185,9 +242,41 @@ Fecha: 26/04/2025 21:30:00
 
       if (eventDate < today) {
         card.classList.add('card--past');
-      } else {
-        card.classList.add('card--future');
+        return 'past';
       }
+
+      card.classList.add('card--future');
+      return 'future';
+    }
+
+    function formatCost(value) {
+      if (value === undefined || value === null) return null;
+
+      const trimmed = String(value).trim();
+      if (!trimmed) return null;
+
+      const sanitized = trimmed.replace(/^\$/, '').replace(/USD$/i, '').trim();
+      let digitsOnly = sanitized.replace(/[^0-9.,-]/g, '');
+
+      if (digitsOnly) {
+        let normalized = digitsOnly;
+        if (digitsOnly.includes(',') && digitsOnly.includes('.')) {
+          normalized = digitsOnly.replace(/\./g, '').replace(',', '.');
+        } else if (digitsOnly.includes(',') && !digitsOnly.includes('.')) {
+          normalized = digitsOnly.replace(',', '.');
+        }
+
+        const numeric = Number(normalized);
+        if (!Number.isNaN(numeric)) {
+          const formatter = new Intl.NumberFormat('es-ES', {
+            minimumFractionDigits: numeric % 1 === 0 ? 0 : 2,
+            maximumFractionDigits: 2
+          });
+          return `$ ${formatter.format(numeric)}`;
+        }
+      }
+
+      return `$ ${sanitized}`;
     }
 
     function init() {
@@ -223,16 +312,25 @@ Fecha: 26/04/2025 21:30:00
         if (!item.FECHA) return;
         const card = document.createElement('div');
         card.className = 'card';
-        applyTemporalClass(card, item.FECHA);
+        const temporalState = applyTemporalClass(card, item.FECHA);
+        const badgeClass = temporalState === 'past' ? 'card-badge--past' : 'card-badge--future';
+        const badgeLabel = temporalState === 'past' ? 'Finalizado' : 'Próximo';
+        const cost = formatCost(item.COSTO);
         card.innerHTML = `
           <img src="${item.IMAGEN}" alt="${item.ARTISTA}">
           <div class="card-content">
-            <h3>${item.ARTISTA}</h3>
-            <p><strong>Fecha:</strong> ${item.FECHA}</p>
-            <p><strong>Lugar:</strong> ${item.LUGAR} (${item.CIUDAD})</p>
-            <p><strong>Asistentes:</strong> ${item.ASISTENTES}</p>
-            <p><strong>Calificación:</strong> ${item.CALIFICACION}</p>
-            <p><strong>Notas:</strong> ${item.NOTAS}</p>
+            <div class="card-header">
+              <h3>${item.ARTISTA}</h3>
+              <span class="card-badge ${badgeClass}">${badgeLabel}</span>
+            </div>
+            <div class="card-body">
+              <p><strong>Fecha:</strong> ${item.FECHA}</p>
+              <p><strong>Lugar:</strong> ${item.LUGAR} (${item.CIUDAD})</p>
+              <p><strong>Asistentes:</strong> ${item.ASISTENTES}</p>
+              <p><strong>Calificación:</strong> ${item.CALIFICACION}</p>
+              <p><strong>Notas:</strong> ${item.NOTAS}</p>
+            </div>
+            ${cost ? `<div class="card-footer"><span class="card-cost">${cost}</span></div>` : ''}
           </div>
         `;
         container.appendChild(card);
@@ -246,17 +344,25 @@ Fecha: 26/04/2025 21:30:00
         if (!item['FECHA IDA']) return;
         const card = document.createElement('div');
         card.className = 'card';
-        applyTemporalClass(card, item['FECHA IDA']);
+        const temporalState = applyTemporalClass(card, item['FECHA IDA']);
+        const badgeClass = temporalState === 'past' ? 'card-badge--past' : 'card-badge--future';
+        const badgeLabel = temporalState === 'past' ? 'Finalizado' : 'Próximo';
+        const cost = formatCost(item.COSTO);
         card.innerHTML = `
           <div class="card-content">
-            <h3>${item.ORIGEN} → ${item.DESTINO}</h3>
-            <p><strong>Fecha Ida:</strong> ${item['FECHA IDA']}</p>
-            <p><strong>Aerolínea:</strong> ${item.AEROLINEA}</p>
-            <p><strong>Duración:</strong> ${item.DURACION}</p>
-            <p><strong>KM:</strong> ${item.KM}</p>
-            <p><strong>Coste:</strong> ${item.COSTO}</p>
-            <p><strong>Participantes:</strong> ${item.PARTICIPANTES}</p>
-            <p><strong>Notas:</strong> ${item.NOTAS}</p>
+            <div class="card-header">
+              <h3>${item.ORIGEN} → ${item.DESTINO}</h3>
+              <span class="card-badge ${badgeClass}">${badgeLabel}</span>
+            </div>
+            <div class="card-body">
+              <p><strong>Fecha Ida:</strong> ${item['FECHA IDA']}</p>
+              <p><strong>Aerolínea:</strong> ${item.AEROLINEA}</p>
+              <p><strong>Duración:</strong> ${item.DURACION}</p>
+              <p><strong>KM:</strong> ${item.KM}</p>
+              <p><strong>Participantes:</strong> ${item.PARTICIPANTES}</p>
+              <p><strong>Notas:</strong> ${item.NOTAS}</p>
+            </div>
+            ${cost ? `<div class="card-footer"><span class="card-cost">${cost}</span></div>` : ''}
           </div>
         `;
         container.appendChild(card);
