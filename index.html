@@ -75,6 +75,12 @@ Fecha: 26/04/2025 21:30:00
       opacity: 0;
       animation: slideIn 0.5s forwards;
     }
+    .card--past {
+      background: #f3f3f3;
+    }
+    .card--future {
+      background: #e9fbe9;
+    }
     .card img {
       width: 100%;
       height: 200px;
@@ -121,6 +127,69 @@ Fecha: 26/04/2025 21:30:00
     let conciertosData = [];
     let vuelosData = [];
 
+    function parseDateString(dateStr) {
+      if (!dateStr) return null;
+      const trimmed = String(dateStr).trim();
+      if (!trimmed) return null;
+
+      const sanitized = trimmed.split('T')[0].split(' ')[0];
+      const numericPattern = /^(-?\d{1,4})[\/\-](\d{1,2})[\/\-](\d{2,4})$/;
+      const match = sanitized.match(numericPattern);
+
+      if (match) {
+        let [, part1, part2, part3] = match;
+        let day;
+        let month;
+        let year;
+
+        if (part1.length === 4) {
+          year = parseInt(part1, 10);
+          month = parseInt(part2, 10);
+          day = parseInt(part3, 10);
+        } else if (part3.length === 4) {
+          const first = parseInt(part1, 10);
+          const second = parseInt(part2, 10);
+          year = parseInt(part3, 10);
+
+          if (first > 12) {
+            day = first;
+            month = second;
+          } else if (second > 12) {
+            day = second;
+            month = first;
+          } else {
+            day = first;
+            month = second;
+          }
+        } else {
+          return null;
+        }
+
+        const parsed = new Date(year, month - 1, day);
+        if (!Number.isNaN(parsed.getTime())) {
+          return parsed;
+        }
+      }
+
+      const fallback = new Date(trimmed);
+      return Number.isNaN(fallback.getTime()) ? null : fallback;
+    }
+
+    function applyTemporalClass(card, dateStr) {
+      const eventDate = parseDateString(dateStr);
+      if (!eventDate) return;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      eventDate.setHours(0, 0, 0, 0);
+
+      if (eventDate < today) {
+        card.classList.add('card--past');
+      } else {
+        card.classList.add('card--future');
+      }
+    }
+
     function init() {
       // Cargar conciertos
       Papa.parse('https://docs.google.com/spreadsheets/d/e/2PACX-1vTbD8h5F2Tc6-fVFRaXJFbaXycdLlJ975uXIcyUom9aNdF_XTWFSiOELQVEmikQu_JUHzPFZJ3786fx/pub?gid=0&single=true&output=csv', {
@@ -154,6 +223,7 @@ Fecha: 26/04/2025 21:30:00
         if (!item.FECHA) return;
         const card = document.createElement('div');
         card.className = 'card';
+        applyTemporalClass(card, item.FECHA);
         card.innerHTML = `
           <img src="${item.IMAGEN}" alt="${item.ARTISTA}">
           <div class="card-content">
@@ -176,6 +246,7 @@ Fecha: 26/04/2025 21:30:00
         if (!item['FECHA IDA']) return;
         const card = document.createElement('div');
         card.className = 'card';
+        applyTemporalClass(card, item['FECHA IDA']);
         card.innerHTML = `
           <div class="card-content">
             <h3>${item.ORIGEN} → ${item.DESTINO}</h3>
