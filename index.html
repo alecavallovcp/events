@@ -1,7 +1,7 @@
 <!--
-Versión: V5-Animaciones
-Descripción: Se agregaron animaciones suaves para las tarjetas y el cambio de pestañas.
-Fecha: 26/04/2025 21:30:00
+Versión: V6-Estadísticas
+Descripción: Se agregaron métricas agregadas por estado, total de costos y promedio anual.
+Fecha: 28/11/2025 15:18:00
 -->
 
 <!DOCTYPE html>
@@ -38,13 +38,59 @@ Fecha: 26/04/2025 21:30:00
       border-bottom: 3px solid white;
       font-weight: bold;
     }
+    .metrics-wrapper {
+      display: flex;
+      justify-content: center;
+      margin: 20px 20px 0;
+    }
+    .metrics-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      width: min(900px, 90%);
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+      backdrop-filter: blur(6px);
+    }
+    .metric-card {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 12px;
+      border-radius: 10px;
+      background: #f7f9fc;
+      border: 1px solid rgba(0, 123, 255, 0.1);
+      box-shadow: inset 0 1px 1px rgba(255,255,255,0.6);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .metric-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    .metric-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #5c6c80;
+      font-weight: 700;
+    }
+    .metric-value {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: #183154;
+    }
+    .metric-value--highlight {
+      color: #0f7a3d;
+    }
     .search-bar {
       display: flex;
       justify-content: center;
-      margin: 20px;
+      margin: 18px;
     }
     .search-bar input {
-      width: 300px;
+      width: 320px;
       padding: 10px;
       border-radius: 5px;
       border: 1px solid #ccc;
@@ -80,7 +126,7 @@ Fecha: 26/04/2025 21:30:00
       background: #f3f3f3;
     }
     .card--future {
-      background: #e9fbe9;
+      background: #8bb2ff;
     }
     .card-content {
       padding: 15px;
@@ -173,6 +219,27 @@ Fecha: 26/04/2025 21:30:00
     <button class="tab-button" id="btn-vuelos">Vuelos</button>
   </header>
 
+  <div class="metrics-wrapper">
+    <div class="metrics-container">
+      <div class="metric-card">
+        <span class="metric-label">Eventos pasados</span>
+        <span id="metricPast" class="metric-value">0</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Eventos futuros</span>
+        <span id="metricFuture" class="metric-value metric-value--highlight">0</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Costo total (1 persona)</span>
+        <span id="metricCost" class="metric-value">$ 0</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Promedio eventos x año</span>
+        <span id="metricAverage" class="metric-value">0</span>
+      </div>
+    </div>
+  </div>
+
   <div class="search-bar">
     <input type="text" id="searchInput" placeholder="Buscar...">
   </div>
@@ -183,6 +250,53 @@ Fecha: 26/04/2025 21:30:00
   <script>
     let conciertosData = [];
     let vuelosData = [];
+
+    function updateMetrics() {
+      const pastEl = document.getElementById('metricPast');
+      const futureEl = document.getElementById('metricFuture');
+      const costEl = document.getElementById('metricCost');
+      const averageEl = document.getElementById('metricAverage');
+
+      const combined = [...conciertosData, ...vuelosData];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      let pastCount = 0;
+      let futureCount = 0;
+      let totalCost = 0;
+      const yearCount = new Map();
+
+      combined.forEach(item => {
+        const dateStr = item.FECHA || item['FECHA IDA'];
+        const parsedDate = parseDateString(dateStr);
+        if (!parsedDate) return;
+
+        const normalizedDate = new Date(parsedDate.getTime());
+        normalizedDate.setHours(0, 0, 0, 0);
+
+        if (normalizedDate < today) {
+          pastCount += 1;
+        } else {
+          futureCount += 1;
+        }
+
+        const year = normalizedDate.getFullYear();
+        yearCount.set(year, (yearCount.get(year) || 0) + 1);
+
+        const costValue = parseCostToNumber(item.COSTO);
+        if (costValue !== null) {
+          totalCost += costValue;
+        }
+      });
+
+      const eventsWithDate = pastCount + futureCount;
+      const averagePerYear = yearCount.size ? (eventsWithDate / yearCount.size) : 0;
+
+      pastEl.textContent = pastCount;
+      futureEl.textContent = futureCount;
+      costEl.textContent = formatCost(totalCost) ?? '$ 0';
+      averageEl.textContent = averagePerYear.toFixed(1);
+    }
 
     function parseDateString(dateStr) {
       if (!dateStr) return null;
@@ -249,6 +363,27 @@ Fecha: 26/04/2025 21:30:00
       return 'future';
     }
 
+    function parseCostToNumber(value) {
+      if (value === undefined || value === null) return null;
+
+      const trimmed = String(value).trim();
+      if (!trimmed) return null;
+
+      const sanitized = trimmed.replace(/\$/g, '').replace(/USD$/i, '').trim();
+      let digitsOnly = sanitized.replace(/[^0-9.,-]/g, '');
+
+      if (!digitsOnly) return null;
+
+      if (digitsOnly.includes(',') && digitsOnly.includes('.')) {
+        digitsOnly = digitsOnly.replace(/\./g, '').replace(',', '.');
+      } else if (digitsOnly.includes(',') && !digitsOnly.includes('.')) {
+        digitsOnly = digitsOnly.replace(',', '.');
+      }
+
+      const numeric = Number(digitsOnly);
+      return Number.isNaN(numeric) ? null : numeric;
+    }
+
     function formatCost(value) {
       if (value === undefined || value === null) return null;
 
@@ -287,6 +422,7 @@ Fecha: 26/04/2025 21:30:00
         complete: function(results) {
           conciertosData = results.data;
           renderConciertos(conciertosData);
+          updateMetrics();
         }
       });
 
@@ -297,6 +433,7 @@ Fecha: 26/04/2025 21:30:00
         complete: function(results) {
           vuelosData = results.data;
           renderVuelos(vuelosData);
+          updateMetrics();
         }
       });
 
@@ -335,6 +472,7 @@ Fecha: 26/04/2025 21:30:00
         `;
         container.appendChild(card);
       });
+      updateMetrics();
     }
 
     function renderVuelos(data) {
